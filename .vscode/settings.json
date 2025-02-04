@@ -1,0 +1,15 @@
+{
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "flake8.severity": {
+        "E": "Warning",
+        "F": "Warning",
+        "W": "Warning"
+    },
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.python"
+    },
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+}
