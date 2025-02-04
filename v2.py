@@ -209,7 +209,7 @@ class TeeOutput:
 
 
 # auto tee the current all print to the file
-save_dir = time.strftime("runs/bigram_training/%Y-%m-%d_%H-%M-%S")
+save_dir = time.strftime("runs/saved_models/%Y-%m-%d_%H-%M-%S")
 result_file = os.path.join(save_dir, "result.txt")
 os.makedirs(save_dir, exist_ok=True)
 f = open(result_file, "w")
@@ -221,13 +221,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--load_path", type=str, default="")
 args = parser.parse_args()
 
+m = model.to(device)
 if args.load_path:
     model.load_state_dict(torch.load(args.load_path))
     losses = estimate_loss()
     print(f"model loaded from {args.load_path}, "
           f"the loss is {losses['train']:.4f}, {losses['val']:.4f}")
-
-m = model.to(device)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
