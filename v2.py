@@ -1,3 +1,5 @@
+import argparse
+import sys
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -190,7 +192,41 @@ class BigramLanguageModel(nn.Module):
         return idx
 
 
+class TeeOutput:
+    def __init__(self, file):
+        self.file = file
+        self.stdout = sys.stdout
+
+    def write(self, data):
+        self.file.write(data)
+        self.stdout.write(data)
+        self.file.flush()
+        self.stdout.flush()
+
+    def flush(self):
+        self.file.flush()
+        self.stdout.flush()
+
+
+# auto tee the current all print to the file
+save_dir = time.strftime("runs/bigram_training/%Y-%m-%d_%H-%M-%S")
+result_file = os.path.join(save_dir, "result.txt")
+os.makedirs(save_dir, exist_ok=True)
+f = open(result_file, "w")
+sys.stdout = TeeOutput(f)
+
 model = BigramLanguageModel(vocab_size)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--load_path", type=str, default="")
+args = parser.parse_args()
+
+if args.load_path:
+    model.load_state_dict(torch.load(args.load_path))
+    losses = estimate_loss()
+    print(f"model loaded from {args.load_path}, "
+          f"the loss is {losses['train']:.4f}, {losses['val']:.4f}")
+
 m = model.to(device)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -211,10 +247,11 @@ for iter in range(max_iters):
         remaining = (max_iters - iter) * elapsed / eval_interval
         iter_start = cur
         losses = estimate_loss()
-        print(f"step {iter}/{max_iters}(elapsed {elapsed:.2f}s, "
-              f"remaining {remaining:.2f}s, {elapsed/60:.2f}m, "
-              f"{elapsed/3600:.2f}h): train loss {losses['train']:.4f}, "
-              f"val loss {losses['val']:.4f}")
+        s = f"step {iter}/{max_iters}(elapsed {elapsed:.2f}s, "
+        s += f"remaining {remaining:.2f}s, {remaining/60:.2f}m, "
+        s += f"{remaining/3600:.2f}h): train loss {losses['train']:.4f}, "
+        s += f"val loss {losses['val']:.4f}"
+        print(s)
         # Add more detailed logging.
         writer.add_scalars('Loss', {
             'train': losses['train'],
@@ -226,6 +263,12 @@ for iter in range(max_iters):
     loss.backward()
     optimizer.step()
 
+save_path = os.path.join(save_dir, "model.pth")
+torch.save(model.state_dict(), save_path)
+print(f"model saved to {save_path}")
+
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
 print(decode(m.generate(context, max_new_tokens=100)[0].tolist()))
 writer.close()
+sys.stdout = sys.__stdout__
+f.close()
