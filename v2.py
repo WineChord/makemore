@@ -4,18 +4,19 @@ from torch.nn import functional as F
 from torch.utils.tensorboard import SummaryWriter
 import shutil
 import os
+import time
 
 batch_size = 64  # how many independent sequences will we process in parallel?
 block_size = 256  # what is the maximum context length for predictions?
 max_iters = 5000
-eval_interval = 1
+eval_interval = 500
 learning_rate = 3e-4
 device = (
     "cuda"
     if torch.cuda.is_available()
     else "mps" if torch.backends.mps.is_available() else "cpu"
 )
-device = 'cpu'
+# device = 'cpu'
 print(f"Using device: {device}")
 eval_iters = 200
 n_embd = 384
@@ -88,7 +89,8 @@ class Head(nn.Module):
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.register_buffer('tril', torch.tril(torch.ones(block_size,
+                                                           block_size)))
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x):
@@ -201,16 +203,18 @@ if os.path.exists(log_dir):
 # Create a new writer with a more specific name.
 writer = SummaryWriter(log_dir)
 
-import time
 iter_start = time.time()
 for iter in range(max_iters):
     if iter % eval_interval == 0:
         cur = time.time()
         elapsed = cur - iter_start
+        remaining = (max_iters - iter) * elapsed / eval_interval
         iter_start = cur
         losses = estimate_loss()
-        print(f"step {iter}: train loss {losses['train']:.4f}, "
-              f"val loss {losses['val']:.4f}, {elapsed:.2f}s")
+        print(f"step {iter}/{max_iters}(elapsed {elapsed:.2f}s, "
+              f"remaining {remaining:.2f}s, {elapsed/60:.2f}m, "
+              f"{elapsed/3600:.2f}h): train loss {losses['train']:.4f}, "
+              f"val loss {losses['val']:.4f}")
         # Add more detailed logging.
         writer.add_scalars('Loss', {
             'train': losses['train'],
