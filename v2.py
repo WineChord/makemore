@@ -15,7 +15,8 @@ device = (
     if torch.cuda.is_available()
     else "mps" if torch.backends.mps.is_available() else "cpu"
 )
-device = 'cpu'
+# device = 'cpu'
+print(f"Using device: {device}")
 eval_iters = 200
 n_embd = 32
 
@@ -192,11 +193,16 @@ if os.path.exists(log_dir):
 # Create a new writer with a more specific name.
 writer = SummaryWriter(log_dir)
 
+import time
+iter_start = time.time()
 for iter in range(max_iters):
     if iter % eval_interval == 0:
+        cur = time.time()
+        elapsed = cur - iter_start
+        iter_start = cur
         losses = estimate_loss()
         print(f"step {iter}: train loss {losses['train']:.4f}, "
-              f"val loss {losses['val']:.4f}")
+              f"val loss {losses['val']:.4f}, {elapsed:.2f}s")
         # Add more detailed logging.
         writer.add_scalars('Loss', {
             'train': losses['train'],
