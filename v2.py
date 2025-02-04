@@ -28,8 +28,14 @@ dropout = 0.2
 
 torch.manual_seed(1337)
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--datafile", type=str, default="input.txt")
+parser.add_argument("--load_path", type=str, default="")
+args = parser.parse_args()
+
+
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-with open("input.txt", "r", encoding="utf-8") as f:
+with open(args.datafile, "r", encoding="utf-8") as f:
     text = f.read()
 
 # here are all the unique characters that occur in this text
@@ -216,10 +222,6 @@ f = open(result_file, "w")
 sys.stdout = TeeOutput(f)
 
 model = BigramLanguageModel(vocab_size)
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--load_path", type=str, default="")
-args = parser.parse_args()
 
 m = model.to(device)
 if args.load_path:
